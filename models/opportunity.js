@@ -8,11 +8,15 @@ const opportunitySchema = new mongoose.Schema({
     },
     description :  {
         type : String ,
-        required : true , 
+        required : false , 
     },
     date : {
         type : Date , 
         required: true 
+    },
+    createdAt : {
+        type : Date , 
+        required: false 
     },
     type : {
         type : String , 
@@ -20,11 +24,11 @@ const opportunitySchema = new mongoose.Schema({
     },
     duration : {
         type : String  , 
-        required : true , 
+        required : false , 
     },
     sallary : {
         type : Number , 
-        required : true 
+        required : false 
     },
     contractType : {
         type : String , 
@@ -34,18 +38,28 @@ const opportunitySchema = new mongoose.Schema({
         type : String , 
         required : false 
     },
+    price : {
+        type : Number, 
+        require : false 
+    },
     skills : [
     {
         type: mongoose.Schema.Types.ObjectId,
         ref: "skill",
-        required: true,
+        required: false,
     } 
     ],
     company : {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true,
-    }
-
+    },
+    applications : [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "application",
+            required: false,
+        } 
+        ]
 })
 module.exports = mongoose.model("opportunity", opportunitySchema);

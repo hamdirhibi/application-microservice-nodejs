@@ -4,8 +4,11 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const port = process.env.PORT || 4000;
+const path = require('path');
 dotenv.config();
 
+app.use(express.static(__dirname + './files/'));
+app.use("/application/files", express.static(path.join(__dirname + '/files')));
 
 //import routes
 const applicationRoute = require("./routes/application");

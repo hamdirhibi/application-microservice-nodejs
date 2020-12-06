@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 
-const apllicationSchema = new mongoose.Schema({
+const applicationSchema = new mongoose.Schema({
     
-    motiviation :  {
+    motivation :  {
         type : String ,
         required : true , 
     },
@@ -31,4 +31,4 @@ const apllicationSchema = new mongoose.Schema({
     }
 
 })
-module.exports = mongoose.model("application", apllicationSchema);
+module.exports = mongoose.model("application", applicationSchema);

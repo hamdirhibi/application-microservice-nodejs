@@ -2,13 +2,15 @@ const Notification = require ('../models/notification');
 const Opportunity = require('../models/opportunity');
 const User = require('../models/user') ; 
 const Application = require('../models/application') ; 
+var ObjectID = require('mongodb').ObjectID;
+const opportunity = require('../models/opportunity');
 
 
 
 exports.newApplication = async (req,res) =>{
 
     try{
-        const user = await User.findById(req.params.userId); 
+        const user = await User.findById(req.userData.user._id); 
         
         if (!user) {
             return res
@@ -25,19 +27,23 @@ exports.newApplication = async (req,res) =>{
 
         const createdAt = new Date();
 
+        let file = null ;
+        if (req.files[0]!=undefined)
+            file = req.files[0].path;
 
-
-        const newApplication = new Application({
-            cv : req.files[0].path ,
+        const newApplication =await  Application.create({
+            cv : file ,
             motivation : req.body.motivation ,
-            user : req.body.userId ,
-            opportunity : req.body.opportunityId ,
-            createdAt : req.body.createdAt ,
-            status : 'pending' 
+            user : req.userData.user._id ,
+            opportunity : req.params.opportunityId ,
+            createdAt : createdAt ,
+            status : 'PENDING' 
         });
-
-        const savedApplication= await newApplication.save() ; 
-        res.status(200).json(savedApplication);
+        await opportunity.applications.push(newApplication) ; 
+        await opportunity.save().then( () =>{
+            res.status(200).json(newApplication);
+        }) 
+        
 
     }catch (err){
         res.json({message : err}); 
@@ -50,22 +56,84 @@ exports.newApplication = async (req,res) =>{
 
 exports.getApplicationByUser = async (req,res) =>{
     try {
-
         const applications = await Application.find({
             user : req.userData.user._id,
         })
+        .populate({
+            path: 'opportunity',
+            populate: { path: 'company' }
+          })        
+        .exec() ; 
         res.json(applications)
     }
     catch(err){
-        res.json({message: err})
+        res.status(400).json({message: err})
     }
 }
+
+
+exports.getApplicationById = async (req,res) =>{
+    try {
+        const application = await Application
+        .findById(req.params.applicationId)
+        .populate({
+            path: 'opportunity',
+            populate: { path: 'company' }
+          })        
+        .exec() ; 
+ 
+        
+        if (!application) {
+            return res
+            .status(409)
+            .json({ message: "application  doesn't  exist ! " });
+        }
+
+        res.json(application) ; 
+    }
+    catch(err){
+        res.status(400).json({message: err})
+    }
+}
+
+
+exports.getApplicationByCompany= async (req,res) =>{
+    try {
+        const opportunities = await Opportunity
+        .find({company : req.params.companyId}) 
+        .populate({
+            path: 'applications'
+          })        
+        .exec() ; 
+        let applications = []; 
+        for (let i=0 ; i< opportunities.length; i++){
+            console.log(i)
+            console.log(opportunities[i].applications)
+            applications = applications.concat(opportunities[i].applications) ;  
+        }
+          
+       
+
+        res.json(applications) ; 
+    }
+    catch(err){
+        res.status(400).json({message: err})
+    }
+}
+
 
 
 exports.getApplicationByOpportunity = async (req,res) =>{
     try {
 
-        const opportunity = await Opportunity.findById(req.params.opportunityId); 
+        const opportunity = await Opportunity
+        .findById(req.params.opportunityId)
+        .populate({
+            path: 'opportunity',
+            populate: { path: 'company' }
+          })        
+        .exec() ; 
+
         
         if (!opportunity) {
             return res
@@ -80,13 +148,9 @@ exports.getApplicationByOpportunity = async (req,res) =>{
         res.json(applications)
     }
     catch(err){
-        res.json({message: err})
+        res.status(400).json({message: err})
     }
 }
-
-
-
-
 exports.deleteApplication = async (req,res) =>{
     try {
         const application = await Application.findById(req.params.applicationId); 
@@ -97,7 +161,12 @@ exports.deleteApplication = async (req,res) =>{
             .json({ message: "application  doesn't  exist ! " });
         }
 
-        
+        await Opportunity.update(
+            {  } ,  
+            { $pull: { applications: { $in: [ req.params.applicationId ] } }},
+            { multi: true }
+        ).exec() ;  
+   
         await Application.deleteOne({
             _id : req.params.applicationId
         }) ; 
@@ -105,11 +174,9 @@ exports.deleteApplication = async (req,res) =>{
         res.status(200).json({message : 'Successfully deleting Application '}); 
     }
     catch(err){
-        res.json({message: err})
+        res.status(400).json({message: err})
     }
 }
-
-
 exports.updateApplication = async (req,res) =>{
     try {
         const application = await Application.findById(req.params.applicationId); 
@@ -119,14 +186,20 @@ exports.updateApplication = async (req,res) =>{
             .status(409)
             .json({ message: "application  doesn't  exist ! " });
         }
-        const applicationUpdated =  await Application.updateOne({
+        
+        const applicationUpdated =  await Application.findOneAndUpdate(
             
-                _id : req.body.opportunityId,
-                status : req.body.status
-        })
-        res.status(200).json(applicationUpdated); 
+               { _id : ObjectID(req.params.applicationId) } ,  
+                 {
+                    $set : {
+                        status : req.body.status
+                    }
+                 }
+        ).exec() ;  
+
+        await res.status(200).json(applicationUpdated); 
     }
     catch(err){
-        res.json({message: err})
+        res.status(400).json({message: err})
     }
 }
