@@ -40,6 +40,8 @@ exports.newApplication = async (req,res) =>{
             status : 'PENDING' 
         });
         await opportunity.applications.push(newApplication) ; 
+        await user.applications.push(newApplication) ; 
+        await user.save() ; 
         await opportunity.save().then( () =>{
             res.status(200).json(newApplication);
         }) 
@@ -102,17 +104,29 @@ exports.getApplicationByCompany= async (req,res) =>{
         const opportunities = await Opportunity
         .find({company : req.params.companyId}) 
         .populate({
-            path: 'applications'
-          })        
+            path: 'applications' , 
+            populate :{
+                path : 'opportunity' ,
+                model : 'opportunity'
+            },
+            // populate :{
+            //     path : 'user',
+            //     model : 'user'
+            // }
+        })        
+        .populate({
+            path: 'applications' ,         
+            populate :{
+                path : 'user',
+                model : 'user'
+            }
+        })        
         .exec() ; 
         let applications = []; 
         for (let i=0 ; i< opportunities.length; i++){
-            console.log(i)
-            console.log(opportunities[i].applications)
             applications = applications.concat(opportunities[i].applications) ;  
         }
           
-       
 
         res.json(applications) ; 
     }
