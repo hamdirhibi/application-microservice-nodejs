@@ -17,6 +17,7 @@ exports.newApplication = async (req,res) =>{
             .status(409)
             .json({ message: "user  doesn't  exist ! " });
         }
+        console.log(user)
         const opportunity = await Opportunity.findById(req.params.opportunityId); 
         
         if (!opportunity) {
@@ -40,15 +41,23 @@ exports.newApplication = async (req,res) =>{
             status : 'PENDING' 
         });
         await opportunity.applications.push(newApplication) ; 
-        await user.applications.push(newApplication) ; 
-        await user.save() ; 
-        await opportunity.save().then( () =>{
+        await opportunity.save() ; 
+        console.log(newApplication) ; 
+        await User.findOneAndUpdate(
+            { _id :  req.userData.user._id } ,  
+            { $push: { applications: newApplication }},
+            {useFindAndModify: false},
+            function(err, model) {
+                console.log(err+" "+model);
+            }
+        )
+        .exec() 
+        .then(()=>{
             res.status(200).json(newApplication);
-        }) 
-        
+        }) ;  
 
     }catch (err){
-        res.json({message : err}); 
+        res.status(500).json({message : err}); 
         console.log(err) ;
     }
 
@@ -108,11 +117,7 @@ exports.getApplicationByCompany= async (req,res) =>{
             populate :{
                 path : 'opportunity' ,
                 model : 'opportunity'
-            },
-            // populate :{
-            //     path : 'user',
-            //     model : 'user'
-            // }
+            }
         })        
         .populate({
             path: 'applications' ,         

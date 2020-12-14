@@ -55,6 +55,13 @@ const userSchema = new mongoose.Schema({
       required: true,
     }
   ],
+  applications : [
+    {
+       type: mongoose.Schema.Types.ObjectId,
+       ref: "application",
+       required: true,
+    }
+   ],
 
 });
 
