@@ -4,8 +4,17 @@ const User = require('../models/user') ;
 const Application = require('../models/application') ; 
 var ObjectID = require('mongodb').ObjectID;
 const opportunity = require('../models/opportunity');
+const nodemailer = require('nodemailer');
 
-
+var transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'souadabidi544@gmail.com',
+      pass: 'Souad123@'
+    }
+  });
+  
+  
 
 exports.newApplication = async (req,res) =>{
 
@@ -17,9 +26,9 @@ exports.newApplication = async (req,res) =>{
             .status(409)
             .json({ message: "user  doesn't  exist ! " });
         }
-        console.log(user)
-        const opportunity = await Opportunity.findById(req.params.opportunityId); 
-        
+        const opportunity = await Opportunity.findById(req.params.opportunityId).populate({path :'company'}); 
+        console.log(opportunity)
+
         if (!opportunity) {
             return res
             .status(409)
@@ -52,9 +61,34 @@ exports.newApplication = async (req,res) =>{
             }
         )
         .exec() 
-        .then(()=>{
+        .then(async ()=>{
+            const mailOptions = {
+                from: 'souadabidi544@gmail.com',
+                to: 'souadabidi544@gmail.com',
+                subject: 'New application',
+                text: `You have new application for your opportunity  ${opportunity.title} le ${createdAt} \n from  : ${req.userData.user.name}  \n Email : ${opportunity.company.email} \n Motivation   : ${req.body.motivation} `,
+                attachments: [{
+                    filename: 'cv.pdf',
+                    path: file ,
+                    contentType: 'application/pdf'
+                  }],
+                
+            
+            };
+              await transporter.sendMail(mailOptions, function(error, info){
+                if (error) {
+                  console.log(error);
+                } else {
+                  console.log('Email sent: ' + info.response);
+                }
+              });
+              
             res.status(200).json(newApplication);
         }) ;  
+
+
+
+
 
     }catch (err){
         res.status(500).json({message : err}); 
